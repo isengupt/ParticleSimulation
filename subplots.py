@@ -314,6 +314,7 @@ class World:
         self.lineLatent.set_data([],[])
         self.lineInfected.set_data([],[])
         self.circles = []
+        self.legend = plt.legend()
         for particle in self.particles:
             self.circles.append(particle.draw(self.ax))
         return self.patches
@@ -329,25 +330,41 @@ class World:
     def animateAll(self, i):
         
         self.timeInterval.append(self.curTime)
-        self.recoveryInterval.append(self.compartmentStats['recovered'])
-        self.deathInterval.append(self.compartmentStats['dead'])
-        self.asymptomaticInterval.append(self.compartmentStats['asymptomatic'])
-        self.susceptibleInterval.append(self.compartmentStats['susceptible'])
-        self.latentInterval.append(self.compartmentStats['latent'])
         self.infectedInterval.append(self.compartmentStats['infected'])
         
+        self.asymptomaticInterval.append(self.compartmentStats['asymptomatic'] + self.compartmentStats['infected'] )
+        self.latentInterval.append(self.compartmentStats['latent'] +self.compartmentStats['asymptomatic'] + self.compartmentStats['infected'] )
+        self.susceptibleInterval.append(self.compartmentStats['susceptible'] + self.compartmentStats['latent'] +self.compartmentStats['asymptomatic'] + self.compartmentStats['infected'] )
+        self.recoveryInterval.append(self.compartmentStats['recovered'] + self.compartmentStats['susceptible'] + self.compartmentStats['latent'] +self.compartmentStats['asymptomatic'] + self.compartmentStats['infected'] )
+        self.deathInterval.append(self.compartmentStats['dead'] + self.compartmentStats['recovered'] + self.compartmentStats['susceptible'] + self.compartmentStats['latent'] +self.compartmentStats['asymptomatic'] + self.compartmentStats['infected'])
+     
+
+        #infected_fill = plt.fill_between(self.timeInterval, self.infectedInterval, color="#F07C4E", zorder=10)
+        #asymptomatic_fill = plt.fill_between(self.timeInterval, self.asymptomaticInterval, color="#F39F79", zorder=9)
+        #latent_fill = plt.fill_between(self.timeInterval, self.latentInterval, color="#FAD9B9", zorder=8)
+        #susceptible_fill = plt.fill_between(self.timeInterval, self.susceptibleInterval, color="#B0C4DE", zorder=7)
+        #recovery_fill = plt.fill_between(self.timeInterval, self.recoveryInterval, color="#9370DB", zorder=5)
+        #death_fill = plt.fill_between(self.timeInterval, self.deathInterval, color="#000000", zorder=4)
+
+        
         self.lineRecovered.set_data(self.timeInterval, self.recoveryInterval)
+        
+
         self.lineDeathes.set_data(self.timeInterval, self.deathInterval)
         self.lineSusceptible.set_data(self.timeInterval, self.susceptibleInterval)
         self.lineLatent.set_data(self.timeInterval, self.latentInterval)
         self.lineAsymptotic.set_data(self.timeInterval, self.asymptomaticInterval)
         self.lineInfected.set_data(self.timeInterval, self.infectedInterval)
         
+        
         self.ax_line.set_xlim(0, max(self.timeInterval))
         
         
         self.curTime += 1
         self.advance_animation(0.1)
+
+        self.legend.remove()
+        self.legend = plt.legend()
 
         return self.patches
 
@@ -360,8 +377,9 @@ class World:
 
         
         fig =  plt.figure()
+
         plt.tight_layout()
-        self.ax = fig.add_subplot(221)
+        self.ax = fig.add_subplot(211)
         for s in ['top','bottom','left','right']:
             self.ax.spines[s].set_linewidth(2)
         self.ax.set_aspect('equal', 'box')
@@ -370,12 +388,12 @@ class World:
         self.ax.set_ylim(0, 1)
         self.ax.xaxis.set_ticks([])
         self.ax.yaxis.set_ticks([])
-        self.ax_line = fig.add_subplot(222)
+        self.ax_line = fig.add_subplot(212)
         self.ax_line.set_ylim(0, self.n)
 
         self.lineSusceptible = self.ax_line.plot([],[], color="#B0C4DE", label="susceptible")[0]
         self.lineLatent = self.ax_line.plot([],[], color="#FAD9B9", label="latent")[0]
-        self.lineAsymptotic = self.ax_line.plot([],[], color="#F39F79", label="asympotmatic")[0]
+        self.lineAsymptotic = self.ax_line.plot([],[], color="#F39F79", label="asymptomatic")[0]
         self.lineInfected = self.ax_line.plot([],[], color="#F07C4E" ,label="infected")[0]
         self.lineRecovered = self.ax_line.plot([],[], color ="#9370DB", label="recovered")[0]
         self.lineDeathes = self.ax_line.plot([],[], color="#000000", label="dead")[0]
@@ -383,11 +401,11 @@ class World:
         self.patches = [self.ax, self.lineSusceptible, self.lineLatent, self.lineAsymptotic, self.lineRecovered, self.lineDeathes]
         
         anim = animation.FuncAnimation(fig, self.animateAll, init_func=self.init,
-                               frames=100, interval=20, blit=False)
+                               frames=1200, interval=100, blit=False)
         
         if save:
             Writer = animation.writers['ffmpeg']
-            writer = Writer(fps=100, bitrate=1800)
+            writer = Writer(fps=40, bitrate=None)
             anim.save('CovidModel.mp4', writer=writer)
         else:
             plt.legend()
@@ -398,4 +416,4 @@ class World:
 if __name__ == '__main__':
     nparticles = 100
     sim = World(nparticles, 0.01, 10)
-    sim.do_animation(save=False)
+    sim.do_animation(save=True)
